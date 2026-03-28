@@ -105,6 +105,7 @@ class EEGLLMTrainer:
 
             self.scaler.scale(loss).backward()
             losses.append(loss.item() * self.grad_accum_steps)
+            del outputs
 
             if (step + 1) % self.grad_accum_steps == 0:
                 self.scaler.unscale_(optimizer)
@@ -136,7 +137,7 @@ class EEGLLMTrainer:
                 eeg_data=batch['eeg_data'].cuda(),
                 prompt_ids=batch['prompt_ids'].cuda(),
                 prompt_mask=batch['prompt_mask'].cuda(),
-                max_new_tokens=128,
+                max_new_tokens=20,
             )
             label_ids = batch['label_ids'].numpy()
 
@@ -145,6 +146,9 @@ class EEGLLMTrainer:
                 if predicted_label == true_label:
                     correct += 1
                 total += 1
+            torch.cuda.empty_cache()
+
+        torch.cuda.empty_cache()
 
         acc = correct / total if total > 0 else 0
         print(f"Epoch {epoch+1} Val Accuracy (keyword extraction): {acc:.4f} ({correct}/{total})")
@@ -187,7 +191,7 @@ class EEGLLMTrainer:
                 eeg_data=batch['eeg_data'].cuda(),
                 prompt_ids=batch['prompt_ids'].cuda(),
                 prompt_mask=batch['prompt_mask'].cuda(),
-                max_new_tokens=128,
+                max_new_tokens=20,
             )
             label_ids = batch['label_ids'].numpy()
 
@@ -199,6 +203,7 @@ class EEGLLMTrainer:
 
                 if len(sample_outputs) < 9:  # collect one sample per class
                     sample_outputs.append((true_label, predicted_label, text[:200]))
+            torch.cuda.empty_cache()
 
         acc = correct / total if total > 0 else 0
         print(f"Test Accuracy (keyword extraction): {acc:.4f} ({correct}/{total})")
